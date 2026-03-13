@@ -577,41 +577,52 @@ dataEditServer <- function(id,
 .compute_changes_json <- function(current, original) {
   if (is.null(current) || is.null(original)) return("{}")
   
-  n_rows_curr <- nrow(current)
-  n_cols_curr <- ncol(current)
-  n_rows_orig <- nrow(original)
-  n_cols_orig <- ncol(original)
+  curr_rnames <- rownames(current)
+  curr_cnames <- colnames(current)
+  orig_rnames <- rownames(original)
+  orig_cnames <- colnames(original)
   
   keys <- character(0)
   
-  # Compare overlapping cells
-  min_rows <- min(n_rows_curr, n_rows_orig)
-  min_cols <- min(n_cols_curr, n_cols_orig)
+  # Match rows and columns by name to handle insertions correctly
+  common_rows <- intersect(curr_rnames, orig_rnames)
+  common_cols <- intersect(curr_cnames, orig_cnames)
   
-  if (min_rows > 0 && min_cols > 0) {
-    for (j in seq_len(min_cols)) {
-      curr_col <- as.character(current[seq_len(min_rows), j])
-      orig_col <- as.character(original[seq_len(min_rows), j])
-      differ <- (curr_col != orig_col) | (is.na(curr_col) != is.na(orig_col))
+  # Compare cells that exist in both original and current (matched by name)
+  if (length(common_rows) > 0 && length(common_cols) > 0) {
+    for (cname in common_cols) {
+      curr_pos <- match(cname, curr_cnames)
+      orig_pos <- match(cname, orig_cnames)
+      curr_vals <- as.character(current[match(common_rows, curr_rnames), curr_pos])
+      orig_vals <- as.character(original[match(common_rows, orig_rnames), orig_pos])
+      differ <- (curr_vals != orig_vals) | (is.na(curr_vals) != is.na(orig_vals))
       differ[is.na(differ)] <- FALSE
-      changed_rows <- which(differ)
-      if (length(changed_rows) > 0) {
-        keys <- c(keys, paste0(changed_rows - 1, "_", j - 1))
+      changed <- which(differ)
+      if (length(changed) > 0) {
+        row_positions <- match(common_rows[changed], curr_rnames) - 1
+        col_position <- curr_pos - 1
+        keys <- c(keys, paste0(row_positions, "_", col_position))
       }
     }
   }
   
-  # Mark all cells in new rows
-  if (n_rows_curr > n_rows_orig) {
-    for (i in (n_rows_orig + 1):n_rows_curr) {
-      keys <- c(keys, paste0(i - 1, "_", seq_len(n_cols_curr) - 1))
+  # Mark cells in new rows (rows not in original)
+  new_rows <- setdiff(curr_rnames, orig_rnames)
+  if (length(new_rows) > 0) {
+    row_positions <- match(new_rows, curr_rnames) - 1
+    col_positions <- seq_along(curr_cnames) - 1
+    for (rp in row_positions) {
+      keys <- c(keys, paste0(rp, "_", col_positions))
     }
   }
   
-  # Mark all cells in new columns
-  if (n_cols_curr > n_cols_orig) {
-    for (j in (n_cols_orig + 1):n_cols_curr) {
-      keys <- c(keys, paste0(seq_len(n_rows_curr) - 1, "_", j - 1))
+  # Mark cells in new columns (columns not in original)
+  new_cols <- setdiff(curr_cnames, orig_cnames)
+  if (length(new_cols) > 0) {
+    col_positions <- match(new_cols, curr_cnames) - 1
+    row_positions <- seq_along(curr_rnames) - 1
+    for (cp in col_positions) {
+      keys <- c(keys, paste0(row_positions, "_", cp))
     }
   }
   
