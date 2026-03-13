@@ -1,3 +1,15 @@
+# DataEditR 0.1.7
+
+* Remove the sync button in favour of automatic data synchronisation. Changes 
+  made to filtered or selected data subsets are now automatically merged back 
+  into the master copy of the data as they are made.
+* Fix bug where column indices were not passed to the sync logic 
+  (`values$cols` instead of `values$columns`).
+* Add `auto` parameter to `dataSyncServer()` to allow automatic synchronisation
+  when used as a standalone module.
+* Improve performance by preventing unnecessary table re-renders after data 
+  synchronisation. Filter and select modules no longer reset on every sync.
+
 # DataEditR 0.1.6
 
 * Update FontAwesome icon names.

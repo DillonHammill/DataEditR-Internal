@@ -112,7 +112,7 @@
 #' @importFrom rstudioapi getActiveDocumentContext
 #' @importFrom htmltools img span br div HTML
 #' @importFrom shiny runGadget dialogViewer browserViewer paneViewer splitLayout
-#'   fluidPage column stopApp reactiveValues actionButton insertUI
+#'   fluidPage column stopApp reactiveValues reactiveVal actionButton insertUI
 #' @importFrom shinyjs useShinyjs hidden show
 #' @importFrom bslib bs_theme
 #' @importFrom miniUI gadgetTitleBar
@@ -269,7 +269,6 @@ data_edit <- function(x = NULL,
         style = "padding-left: 5px; margin-top: 35px;",
         dataSelectUI("select1"),
         dataFilterUI("filter1"),
-        dataSyncUI("sync1"),
         dataOutputUI("output-active"),
         dataOutputUI("output-update", 
                      icon = "glyphicon glyphicon-save-file"),
@@ -303,12 +302,6 @@ data_edit <- function(x = NULL,
     
     # SHOW BUTTONS
     if(!hide) {
-      show("sync")
-      addTooltip(
-        session = session,
-        id = "sync",
-        title = "sychronise"
-      )
       show("cut")
       addTooltip(
         session = session,
@@ -326,6 +319,12 @@ data_edit <- function(x = NULL,
       cut = FALSE,
       row_index = NULL
     )
+    
+    # TRIGGER FOR RE-FILTERING (only fires on data input or filter changes)
+    filter_trigger <- reactiveVal(0)
+    
+    # DATA FOR MODULES (only updates on new data input, not auto-sync)
+    data_for_modules <- reactiveVal(NULL)
     
     # DATA INPUT
     data_input <- dataInputServer(
@@ -346,14 +345,18 @@ data_edit <- function(x = NULL,
       values$data <- data_input() %>%
         data_bind_rows(row_bind = row_bind) %>%
         data_bind_cols(col_bind = col_bind)
+      # UPDATE MODULE DATA
+      data_for_modules(values$data)
+      # TRIGGER RE-FILTERING
+      filter_trigger(isolate(filter_trigger()) + 1)
     })
     
-    # FILTERS ALWAYS RESET ON DATA SYNC
+    # FILTERS ALWAYS RESET ON NEW DATA INPUT
     
     # DATA SELECT
     data_select <- dataSelectServer(
       "select1",
-      data = reactive(values$data),
+      data = data_for_modules,
       hide = hide,
       hover_text = "select columns"
     )
@@ -361,7 +364,7 @@ data_edit <- function(x = NULL,
     # DATA FILTER
     data_filter <- dataFilterServer(
       "filter1",
-      data = reactive(values$data),
+      data = data_for_modules,
       hide = hide,
       hover_text = "filter rows"
     )
@@ -370,29 +373,33 @@ data_edit <- function(x = NULL,
     observe({
       values$rows <- data_filter$rows()
       values$columns <- data_select$columns()
+      filter_trigger(isolate(filter_trigger()) + 1)
     })
     
-    # DATA FILTERING
-    observe({
+    # DATA FILTERING - only triggered by filter_trigger changes
+    observeEvent(filter_trigger(), {
+      data <- values$data
+      rows <- values$rows
+      cols <- values$columns
       # ENTIRE DATA
-      if(length(values$rows) == 0 & length(values$columns) == 0) {
-        values$data_active <- values$data
+      if(length(rows) == 0 & length(cols) == 0) {
+        values$data_active <- data
       # DATA SUBSET
       } else {
         # ROWS
-        if(length(values$rows) != 0 & length(values$columns) == 0) {
-          values$data_active <- values$data[values$rows, 
+        if(length(rows) != 0 & length(cols) == 0) {
+          values$data_active <- data[rows, 
                                              , 
                                             drop = FALSE]
         # COLUMNS
-        } else if(length(values$rows) == 0 & length(values$columns) != 0) {
-          values$data_active <- values$data[ , 
-                                            values$columns, 
+        } else if(length(rows) == 0 & length(cols) != 0) {
+          values$data_active <- data[ , 
+                                            cols, 
                                             drop = FALSE]
         # ROWS & COLUMNS
-        } else if(length(values$rows) != 0 & length(values$columns) != 0) {
-          values$data_active <- values$data[values$rows, 
-                                            values$columns, 
+        } else if(length(rows) != 0 & length(cols) != 0) {
+          values$data_active <- data[rows, 
+                                            cols, 
                                             drop = FALSE]
         }
       }
@@ -420,25 +427,44 @@ data_edit <- function(x = NULL,
       quiet = quiet
     )
     
-    # UPDATE ACTIVE DATA
+    # UPDATE ACTIVE DATA & AUTO-SYNC TO MASTER
     observe({
-      values$data_active <- data_update()
-    })
-    
-    # SYNC
-    data_sync <- dataSyncServer(
-      "sync1",
-      data = reactive(values$data),
-      data_subset = reactive(values$data_active),
-      rows = reactive(values$rows),
-      columns = reactive(values$cols),
-      hide = hide,
-      hover_text = "synchronise"
-    )
-    
-    # DATASYNC - ONLY UPDATE MASTER - REMOVE FILTERS FOR DISPLAY
-    observe({
-      values$data <- data_sync()
+      data_new <- data_update()
+      values$data_active <- data_new
+      # AUTO-SYNC: merge changes back to master copy
+      data_old <- isolate(values$data)
+      row_ind <- isolate(values$rows)
+      col_ind <- isolate(values$columns)
+      if(!is.null(data_old) && !is.null(data_new)) {
+        # ENTIRE DATA
+        if(length(row_ind) == 0 & length(col_ind) == 0) {
+          values$data <- data_new
+        # DATA SUBSET
+        } else {
+          # VALUES
+          if(length(row_ind) != 0 & length(col_ind) == 0) {
+            data_old[row_ind, ] <- data_new
+          } else if(length(row_ind) == 0 & length(col_ind) != 0) {
+            data_old[ , col_ind] <- data_new
+          } else if(length(row_ind) != 0 & length(col_ind) != 0) {
+            data_old[row_ind, col_ind] <- data_new
+          }
+          # ROW/COLUMN NAMES
+          if(!is.null(data_new)) {
+            # ROW NAMES
+            if(length(row_ind) != 0 &&
+               !all(rownames(data_new) == rownames(data_old)[row_ind])) {
+              rownames(data_old)[row_ind] <- rownames(data_new)
+            }
+            # COLUMN NAMES
+            if(length(col_ind) != 0 &&
+               !all(colnames(data_new) == colnames(data_old)[col_ind])) {
+              colnames(data_old)[col_ind] <- colnames(data_new)
+            }
+          }
+          values$data <- data_old
+        }
+      }
     })
     
     # DATA OUTPUT - DATA ACTIVE

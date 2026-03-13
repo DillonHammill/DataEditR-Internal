@@ -232,14 +232,10 @@ knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEdi
 
 ### 5.3 Data Synchronisation
 
-Changes made to data subsets are not automatically synchronised in the complete dataset to allow for increased flexibility. However, it is possible to synchronise these changes by selecting the sync button. Currently, synchronising data subsets with altered row/column numbers is not supported.
+Changes made to data subsets are automatically synchronised with the complete dataset as you edit. This means any edits you make to filtered or selected data will be immediately reflected in the master copy of the data, without requiring any additional action.
 
 ```{r, eval = FALSE}
 data_edit(mtcars)
-```
-
-```{r, echo=FALSE, fig.align="center", out.width = '90%'}
-knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-12.gif')
 ```
 
 ### 5.4 Export Data Subsets
