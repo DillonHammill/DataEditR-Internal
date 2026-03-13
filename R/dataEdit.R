@@ -43,7 +43,7 @@
 #'   is selected, set to \code{read.csv} by default.
 #' @param read_args a named list of additional arguments to pass to
 #'   \code{read_fun} when reading in files.
-#' @param cell_highlight can be set to \code{TRUE} to highlight cells that have
+#' @param track can be set to \code{TRUE} to highlight cells that have
 #'   been edited or added to the original data with a default blue border, or a
 #'   valid CSS color (e.g. \code{"#FF0000"} or \code{"red"}) to use a custom
 #'   border color. Set to \code{NULL} by default to disable highlighting.
@@ -108,7 +108,7 @@ dataEditServer <- function(id,
                            quiet = FALSE,
                            read_fun = "read.csv",
                            read_args = NULL,
-                           cell_highlight = NULL,
+                           track = NULL,
                            ...) {
   
   # COLUMN STRETCH
@@ -410,11 +410,11 @@ dataEditServer <- function(id,
         
         # HIGHLIGHT CHANGES
         highlight_callback <- NULL
-        if (!is.null(cell_highlight) && !is.null(values$x_original)) {
-          highlight_color <- if (isTRUE(cell_highlight)) {
+        if (!is.null(track) && !is.null(values$x_original)) {
+          highlight_color <- if (isTRUE(track)) {
             "#0275d8"
           } else {
-            cell_highlight
+            track
           }
           changes_json <- .compute_changes_json(values$x, values$x_original)
           highlight_callback <- java_script(sprintf(

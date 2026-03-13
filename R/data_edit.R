@@ -105,7 +105,7 @@
 #'   and store this code.
 #' @param cancel optional value to return when the user hits the \code{cancel}
 #'   button, set to the supplied data by default.
-#' @param cell_highlight can be set to \code{TRUE} to highlight cells that have
+#' @param track can be set to \code{TRUE} to highlight cells that have
 #'   been edited or added to the original data with a default blue border, or a
 #'   valid CSS color (e.g. \code{"#FF0000"} or \code{"red"}) to use a custom
 #'   border color. Set to \code{NULL} by default to disable highlighting.
@@ -160,7 +160,7 @@ data_edit <- function(x = NULL,
                       hide = FALSE,
                       code = FALSE,
                       cancel,
-                      cell_highlight = NULL,
+                      track = NULL,
                       ...) {
   
   # DATA ENVIRONMENT -----------------------------------------------------------
@@ -423,7 +423,7 @@ data_edit <- function(x = NULL,
       row_edit = row_edit,
       row_index = reactive({values$row_index}), # row_index + 1 for new rows
       quiet = quiet,
-      cell_highlight = cell_highlight
+      track = track
     )
     
     # UPDATE ACTIVE DATA
