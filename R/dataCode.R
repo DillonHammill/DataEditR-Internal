@@ -123,27 +123,31 @@ data_code <- function(x, x_edit, name = "data") {
   # Columns to check: original columns that still exist (not removed)
   check_cols_orig <- setdiff(orig_cols, col_changes$removed)
 
+  # Indices within remaining_rows that are shared with edited data
+  shared_indices <- which(remaining_rows %in% shared_rows)
+
   mutate_ops <- c()
   for (orig_col in check_cols_orig) {
     edit_col <- col_name_map[orig_col]
     if (!edit_col %in% edit_cols) next
 
-    positions <- c()
-    values <- c()
+    # Vectorized comparison for shared rows
+    shared_row_names <- remaining_rows[shared_indices]
+    orig_vals <- as.character(x[shared_row_names, orig_col])
+    edit_vals <- as.character(x_edit[shared_row_names, edit_col])
+    # Handle NA values: NA != NA returns NA, so use explicit NA check
+    differs <- (is.na(orig_vals) != is.na(edit_vals)) |
+      (!is.na(orig_vals) & !is.na(edit_vals) & orig_vals != edit_vals)
+    changed <- which(differs)
 
-    for (i in seq_along(remaining_rows)) {
-      row <- remaining_rows[i]
-      if (!row %in% shared_rows) next
-      orig_val <- x[row, orig_col]
-      edit_val <- x_edit[row, edit_col]
-
-      if (!identical(as.character(orig_val), as.character(edit_val))) {
-        positions <- c(positions, i)
-        values <- c(values, data_code_value(edit_val))
-      }
-    }
-
-    if (length(positions) > 0) {
+    if (length(changed) > 0) {
+      # Positions relative to remaining_rows (post-slice)
+      positions <- shared_indices[changed]
+      values <- vapply(
+        x_edit[shared_row_names[changed], edit_col],
+        data_code_value,
+        character(1)
+      )
       col_q <- data_code_quote(edit_col)
       if (length(positions) == 1) {
         mutate_ops <- c(mutate_ops, paste0(
@@ -175,8 +179,10 @@ data_code <- function(x, x_edit, name = "data") {
   # COLUMN ADDITIONS
   if (length(col_changes$added) > 0) {
     add_ops <- c()
+    # Use only rows that exist in x_edit
+    safe_rows <- remaining_rows[remaining_rows %in% edit_rows]
     for (col in col_changes$added) {
-      vals <- x_edit[remaining_rows, col]
+      vals <- x_edit[safe_rows, col]
       val_str <- paste(
         vapply(vals, data_code_value, character(1)),
         collapse = ", "

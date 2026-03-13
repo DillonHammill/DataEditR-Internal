@@ -166,6 +166,12 @@ data_edit <- function(x = NULL,
   # SEARCH DATA OUTSIDE DATA_EDIT
   envir <- parent.frame()
   
+  # CODE GENERATION - CAPTURE NAME EARLY (before x is modified)
+  x_name <- tryCatch({
+    nm <- deparse(substitute(x))
+    if (length(nm) == 1 && make.names(nm) == nm) nm else "data"
+  }, error = function(e) "data")
+  
   # PREPARE DATA ---------------------------------------------------------------
   
   # RSTUDIO ADDIN/DATA
@@ -197,13 +203,9 @@ data_edit <- function(x = NULL,
     cancel <- x
   }
   
-  # CODE GENERATION - CAPTURE ORIGINAL DATA & NAME
+  # CODE GENERATION - CAPTURE ORIGINAL DATA
   if (!isFALSE(code)) {
     x_original <- if (!is.null(x) && !is.null(dim(x))) x else NULL
-    x_name <- tryCatch({
-      nm <- deparse(substitute(x))
-      if (length(nm) == 1 && make.names(nm) == nm) nm else "data"
-    }, error = function(e) "data")
   }
   
   # PREPARE SHINY COMPONENTS ---------------------------------------------------
