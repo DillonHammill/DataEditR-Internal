@@ -141,7 +141,8 @@ dataEditServer <- function(id,
       x_original = NULL, # original data for change highlighting
       data_class = NULL, # original class
       col_names = NULL, # columns cannot be edited
-      row_index = NULL # starting index for added rows
+      row_index = NULL, # starting index for added rows
+      data_loading = FALSE # flag to ignore stale input during data switch
     ) 
     
     # DATA
@@ -287,7 +288,11 @@ dataEditServer <- function(id,
     
     # UPDATE VALUES
     observe({
+      # FLAG DATA LOADING TO IGNORE STALE INPUT
+      values$data_loading <- TRUE
       values$x <- data_to_edit()
+      # RESET ROW INDEX FOR NEW DATA
+      values$row_index <- NULL
       if (is.null(values$x_original)) {
         values$x_original <- data_to_edit()
       }
@@ -295,6 +300,11 @@ dataEditServer <- function(id,
     
     # DATA EDITS - INCLUDES ROW NAME EDITS
     observeEvent(input$x, {
+      # IGNORE STALE INPUT AFTER DATA SWITCH
+      if (isTRUE(values$data_loading)) {
+        values$data_loading <- FALSE
+        return()
+      }
       # OLD VALUES
       x_old <- values$x
       x_new <- hot_to_r(input$x)
