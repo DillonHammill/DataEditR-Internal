@@ -124,10 +124,13 @@ FALSE by default.}
 application. If \code{hide = FALSE} and \code{save_as} is specified, the
 edited data will be written to file after the application is closed.}
 
-\item{code}{logical indicating whether the code required to generate the
-edited data should be printed to the console, set to \code{FALSE} by
-default. Alternatively, users can supply the name of an R script to create
-and store this code.}
+\item{code}{logical indicating whether tidyverse code required to replicate
+the data edits should be printed to the console, set to \code{FALSE} by
+default. Alternatively, users can supply the name of an R script to write
+the code to. The generated code uses \code{dplyr} verbs such as
+\code{rename()}, \code{select()}, \code{mutate()}, \code{slice()}, and
+\code{tibble::add_row()} to replicate column renames, column
+additions/removals, cell value changes, and row additions/removals.}
 
 \item{cancel}{optional value to return when the user hits the \code{cancel}
 button, set to the supplied data by default.}

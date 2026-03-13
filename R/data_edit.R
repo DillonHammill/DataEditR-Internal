@@ -99,10 +99,13 @@
 #'   \code{dataOutput} modules should be visible to the user within the
 #'   application. If \code{hide = FALSE} and \code{save_as} is specified, the
 #'   edited data will be written to file after the application is closed.
-#' @param code logical indicating whether the code required to generate the
-#'   edited data should be printed to the console, set to \code{FALSE} by
-#'   default. Alternatively, users can supply the name of an R script to create
-#'   and store this code.
+#' @param code logical indicating whether tidyverse code required to replicate
+#'   the data edits should be printed to the console, set to \code{FALSE} by
+#'   default. Alternatively, users can supply the name of an R script to write
+#'   the code to. The generated code uses \code{dplyr} verbs such as
+#'   \code{rename()}, \code{select()}, \code{mutate()}, \code{slice()}, and
+#'   \code{tibble::add_row()} to replicate column renames, column
+#'   additions/removals, cell value changes, and row additions/removals.
 #' @param cancel optional value to return when the user hits the \code{cancel}
 #'   button, set to the supplied data by default.
 #' @param ... not in use.
@@ -192,6 +195,15 @@ data_edit <- function(x = NULL,
   # CANCEL
   if(missing(cancel)) {
     cancel <- x
+  }
+  
+  # CODE GENERATION - CAPTURE ORIGINAL DATA & NAME
+  if (!isFALSE(code)) {
+    x_original <- if (!is.null(x) && !is.null(dim(x))) x else NULL
+    x_name <- tryCatch({
+      nm <- deparse(substitute(x))
+      if (length(nm) == 1 && make.names(nm) == nm) nm else "data"
+    }, error = function(e) "data")
   }
   
   # PREPARE SHINY COMPONENTS ---------------------------------------------------
@@ -568,12 +580,14 @@ data_edit <- function(x = NULL,
   } else {
     # CODE
     if(is.character(code)) {
+      code_text <- data_code(x_original, x_edit, name = x_name)
       if(!file.exists(code)) {
         file.create(code)
       }
-      dput(x_edit, code)
-    } else if(code == TRUE) {
-      dput(x_edit)
+      writeLines(code_text, code)
+    } else if(isTRUE(code)) {
+      code_text <- data_code(x_original, x_edit, name = x_name)
+      cat(code_text)
     }
     return(x_edit)
   }
