@@ -32,6 +32,7 @@ data_edit(
   hide = FALSE,
   code = FALSE,
   cancel,
+  cell_highlight = NULL,
   ...
 )
 }
@@ -131,6 +132,11 @@ and store this code.}
 
 \item{cancel}{optional value to return when the user hits the \code{cancel}
 button, set to the supplied data by default.}
+
+\item{cell_highlight}{can be set to \code{TRUE} to highlight cells that have
+been edited or added to the original data with a default blue border, or a
+valid CSS color (e.g. \code{"#FF0000"} or \code{"red"}) to use a custom
+border color. Set to \code{NULL} by default to disable highlighting.}
 
 \item{...}{not in use.}
 }

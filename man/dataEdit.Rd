@@ -24,6 +24,7 @@ dataEditServer(
   quiet = FALSE,
   read_fun = "read.csv",
   read_args = NULL,
+  cell_highlight = NULL,
   ...
 )
 }
@@ -84,6 +85,11 @@ is selected, set to \code{read.csv} by default.}
 
 \item{read_args}{a named list of additional arguments to pass to
 \code{read_fun} when reading in files.}
+
+\item{cell_highlight}{can be set to \code{TRUE} to highlight cells that have
+been edited or added to the original data with a default blue border, or a
+valid CSS color (e.g. \code{"#FF0000"} or \code{"red"}) to use a custom
+border color. Set to \code{NULL} by default to disable highlighting.}
 
 \item{...}{additional arguments passed to
 \code{\link[rhandsontable:rhandsontable]{rhandsontable}}.}
