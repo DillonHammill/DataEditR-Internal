@@ -164,6 +164,21 @@ data_edit(mtcars,
           col_readonly = "mpg")
 ```
 
+### 3.7 Factor columns
+
+`data_edit()` fully supports data frames with factor columns. Factor columns are automatically converted to character for editing within the interactive table. When the editor is closed, character columns that were originally factors are converted back to factors on output if `col_factor = TRUE` is set. This means you can freely edit factor values without encountering errors.
+
+```{r, eval = FALSE}
+# Create data with factor column
+df <- data.frame(
+  name = c("Alice", "Bob", "Charlie"),
+  group = factor(c("A", "B", "A"))
+)
+
+# Edit - factor columns are handled automatically
+df_edited <- data_edit(df)
+```
+
 ## 4. Data Creation
 
 You can also use `data_edit()` to interactively create data.frames from scratch without any coding.
@@ -420,11 +435,6 @@ data_edit(mtcars,
           track = TRUE)
 ```
 
-<!-- TODO: insert gif showing blue-bordered edited cells -->
-```{r, echo=FALSE, fig.align="center", out.width = '90%'}
-# knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-Track.gif')
-```
-
 ### 9.2 Custom highlight colour
 
 You can pass any valid CSS color to `track` to customise the highlight border colour. For example, to use a red border:
@@ -432,11 +442,6 @@ You can pass any valid CSS color to `track` to customise the highlight border co
 ```{r, eval = FALSE}
 data_edit(mtcars,
           track = "red")
-```
-
-<!-- TODO: insert gif showing red-bordered edited cells -->
-```{r, echo=FALSE, fig.align="center", out.width = '90%'}
-# knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-Track-Custom.gif')
 ```
 
 Change tracking uses name-based cell matching, so inserting rows or columns will not cause all subsequent cells to appear as changed — only genuinely modified or newly added cells are highlighted.
@@ -516,11 +521,6 @@ mtcars <- mtcars %>%
   slice(-3) %>%
   mutate(hp = replace(hp, 1, 120)) %>%
   tibble::column_to_rownames(var = ".rownames")
-```
-
-<!-- TODO: insert gif showing code printed to console after editing -->
-```{r, echo=FALSE, fig.align="center", out.width = '90%'}
-# knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-Code.gif')
 ```
 
 ### 12.2 Save code to file

@@ -35,6 +35,16 @@
   causes an error in `hot_context_menu`. Factor columns are now converted to
   character before rendering and converted back on output via `col_factor`.
   (PR #6)
+* Fix `dataFilter` "not between" and "not contain" filter logic which
+  incorrectly used `ncol()` instead of `nrow()`, causing wrong row indices to
+  be returned. (PR #9)
+* Fix `dataFilter` multi-filter intersection which used `duplicated()` and
+  missed rows matching all filters when no duplicates existed. Now uses
+  `table()` to correctly compute the intersection. (PR #9)
+* Fix stale `input$x` race condition in `dataEditServer()` when switching
+  reactive data. A `data_loading` flag now prevents the old table's
+  `input$x` from overwriting `values$x` before the new data has rendered.
+  (PR #10)
 
 ## Internal
 
