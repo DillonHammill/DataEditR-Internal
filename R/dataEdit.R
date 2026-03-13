@@ -363,23 +363,40 @@ dataEditServer <- function(id,
       # SYNC HIDDEN COLUMN ROWS
       if (!is.null(col_hide) && !is.null(values$col_hidden_data)) {
         hidden <- values$col_hidden_data
+        n_current <- nrow(values$x)
+        n_hidden <- nrow(hidden)
         current_rows <- rownames(values$x)
         hidden_rows <- rownames(hidden)
-        # ROWS REMOVED
-        hidden <- hidden[hidden_rows %in% current_rows, , drop = FALSE]
-        # ROWS ADDED
-        new_rows <- setdiff(current_rows, rownames(hidden))
-        if (length(new_rows) > 0) {
-          new_data <- data.frame(
-            matrix(NA, nrow = length(new_rows), ncol = ncol(hidden)),
-            stringsAsFactors = FALSE
-          )
-          colnames(new_data) <- colnames(hidden)
-          rownames(new_data) <- new_rows
-          hidden <- rbind(hidden, new_data)
+        # ROW NAME SYNC - NAMES ALWAYS SET BY DATA_TO_EDIT()
+        if (!is.null(current_rows) && !is.null(hidden_rows)) {
+          # ROWS REMOVED
+          hidden <- hidden[hidden_rows %in% current_rows, , drop = FALSE]
+          # ROWS ADDED
+          new_rows <- setdiff(current_rows, rownames(hidden))
+          if (length(new_rows) > 0) {
+            new_data <- data.frame(
+              matrix(NA, nrow = length(new_rows), ncol = ncol(hidden)),
+              stringsAsFactors = FALSE
+            )
+            colnames(new_data) <- colnames(hidden)
+            rownames(new_data) <- new_rows
+            hidden <- rbind(hidden, new_data)
+          }
+          # REORDER TO MATCH CURRENT DATA
+          hidden <- hidden[match(current_rows, rownames(hidden)), , drop = FALSE]
+        # POSITIONAL FALLBACK - SYNC BY ROW COUNT
+        } else {
+          if (n_current > n_hidden) {
+            new_data <- data.frame(
+              matrix(NA, nrow = n_current - n_hidden, ncol = ncol(hidden)),
+              stringsAsFactors = FALSE
+            )
+            colnames(new_data) <- colnames(hidden)
+            hidden <- rbind(hidden, new_data)
+          } else if (n_current < n_hidden) {
+            hidden <- hidden[seq_len(n_current), , drop = FALSE]
+          }
         }
-        # REORDER TO MATCH CURRENT DATA
-        hidden <- hidden[match(current_rows, rownames(hidden)), , drop = FALSE]
         values$col_hidden_data <- hidden
       }
     })
@@ -624,9 +641,26 @@ dataEditServer <- function(id,
             !is.null(result)) {
           hidden <- values$col_hidden_data
           # SYNC ROW COUNT
-          hidden <- hidden[match(rownames(result), rownames(hidden)), ,
-                           drop = FALSE]
-          rownames(hidden) <- rownames(result)
+          result_rows <- rownames(result)
+          hidden_rows <- rownames(hidden)
+          if (!is.null(result_rows) && !is.null(hidden_rows)) {
+            hidden <- hidden[match(result_rows, hidden_rows), , drop = FALSE]
+            rownames(hidden) <- result_rows
+          } else {
+            # POSITIONAL FALLBACK
+            n_result <- nrow(result)
+            n_hidden <- nrow(hidden)
+            if (n_result > n_hidden) {
+              pad <- data.frame(
+                matrix(NA, nrow = n_result - n_hidden, ncol = ncol(hidden)),
+                stringsAsFactors = FALSE
+              )
+              colnames(pad) <- colnames(hidden)
+              hidden <- rbind(hidden, pad)
+            } else if (n_result < n_hidden) {
+              hidden <- hidden[seq_len(n_result), , drop = FALSE]
+            }
+          }
           # INSERT AT ORIGINAL POSITIONS
           positions <- values$col_hidden_positions
           for (i in seq_along(positions)) {
