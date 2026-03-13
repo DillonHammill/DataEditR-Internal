@@ -629,31 +629,25 @@ dataEditServer <- function(id,
           rownames(hidden) <- rownames(result)
           # INSERT AT ORIGINAL POSITIONS
           positions <- values$col_hidden_positions
-          n_expected <- ncol(result) + ncol(hidden)
-          if (n_expected >= max(positions)) {
-            for (i in seq_along(positions)) {
-              pos <- positions[i]
-              pos <- min(pos, ncol(result) + 1)
-              if (pos == 1) {
-                result <- cbind(
-                  hidden[, i, drop = FALSE],
-                  result
-                )
-              } else if (pos > ncol(result)) {
-                result <- cbind(
-                  result,
-                  hidden[, i, drop = FALSE]
-                )
-              } else {
-                result <- cbind(
-                  result[, 1:(pos - 1), drop = FALSE],
-                  hidden[, i, drop = FALSE],
-                  result[, pos:ncol(result), drop = FALSE]
-                )
-              }
+          for (i in seq_along(positions)) {
+            insert_pos <- min(positions[i], ncol(result) + 1)
+            if (insert_pos == 1) {
+              result <- cbind(
+                hidden[, i, drop = FALSE],
+                result
+              )
+            } else if (insert_pos > ncol(result)) {
+              result <- cbind(
+                result,
+                hidden[, i, drop = FALSE]
+              )
+            } else {
+              result <- cbind(
+                result[, 1:(insert_pos - 1), drop = FALSE],
+                hidden[, i, drop = FALSE],
+                result[, insert_pos:ncol(result), drop = FALSE]
+              )
             }
-          } else {
-            result <- cbind(result, hidden)
           }
         }
         data_format(result,
