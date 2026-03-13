@@ -43,6 +43,10 @@
 #'   is selected, set to \code{read.csv} by default.
 #' @param read_args a named list of additional arguments to pass to
 #'   \code{read_fun} when reading in files.
+#' @param cell_highlight can be set to \code{TRUE} to highlight cells that have
+#'   been edited or added to the original data with a default blue border, or a
+#'   valid CSS color (e.g. \code{"#FF0000"} or \code{"red"}) to use a custom
+#'   border color. Set to \code{NULL} by default to disable highlighting.
 #' @param quiet logical to suppress warnings when using \code{col_options}.
 #' @param ... additional arguments passed to
 #'   \code{\link[rhandsontable:rhandsontable]{rhandsontable}}.
@@ -104,6 +108,7 @@ dataEditServer <- function(id,
                            quiet = FALSE,
                            read_fun = "read.csv",
                            read_args = NULL,
+                           cell_highlight = NULL,
                            ...) {
   
   # COLUMN STRETCH
@@ -133,6 +138,7 @@ dataEditServer <- function(id,
     # STORAGE
     values <- reactiveValues(
       x = NULL, # trigger table render
+      x_original = NULL, # original data for change highlighting
       data_class = NULL, # original class
       col_names = NULL, # columns cannot be edited
       row_index = NULL # starting index for added rows
@@ -274,6 +280,7 @@ dataEditServer <- function(id,
     # UPDATE VALUES
     observe({
       values$x <- data_to_edit()
+      values$x_original <- data_to_edit()
     })
     
     # DATA EDITS - INCLUDES ROW NAME EDITS
@@ -398,6 +405,27 @@ dataEditServer <- function(id,
 
       # RHANDSONTABLE
       if (!is.null(values$x)) {
+        
+        # HIGHLIGHT CHANGES
+        highlight_callback <- NULL
+        if (!is.null(cell_highlight) && !is.null(values$x_original)) {
+          highlight_color <- if (isTRUE(cell_highlight)) {
+            "#0275d8"
+          } else {
+            cell_highlight
+          }
+          changes_json <- .compute_changes_json(values$x, values$x_original)
+          highlight_callback <- java_script(sprintf(
+            "function(td, row, col) {
+              var changed = %s;
+              if (changed[row + '_' + col]) {
+                td.style.border = '2px solid %s';
+              }
+            }",
+            changes_json, highlight_color
+          ))
+        }
+        
         rhot <-
           rhandsontable(values$x,
                         useTypes = FALSE,
@@ -409,6 +437,7 @@ dataEditServer <- function(id,
                         highlightCol = TRUE,
                         highlightRow = TRUE,
                         ...,
+                        afterRenderer = highlight_callback,
                         afterOnCellMouseDown = java_script(
                           "function(event, coords, th) {
                         if (coords.row === -1 || coords.col === -1) {
@@ -532,4 +561,60 @@ dataEditServer <- function(id,
     )
     
   })
+}
+
+#' Compute changes between current and original data as JSON
+#'
+#' @param current current data.frame
+#' @param original original data.frame
+#'
+#' @return JSON string representing changed cell coordinates as an object
+#'   with keys in "row_col" format (0-indexed).
+#'
+#' @noRd
+.compute_changes_json <- function(current, original) {
+  if (is.null(current) || is.null(original)) return("{}")
+  
+  n_rows_curr <- nrow(current)
+  n_cols_curr <- ncol(current)
+  n_rows_orig <- nrow(original)
+  n_cols_orig <- ncol(original)
+  
+  keys <- character(0)
+  
+  # Compare overlapping cells
+  min_rows <- min(n_rows_curr, n_rows_orig)
+  min_cols <- min(n_cols_curr, n_cols_orig)
+  
+  if (min_rows > 0 && min_cols > 0) {
+    for (j in seq_len(min_cols)) {
+      curr_col <- as.character(current[seq_len(min_rows), j])
+      orig_col <- as.character(original[seq_len(min_rows), j])
+      differ <- (curr_col != orig_col) | (is.na(curr_col) != is.na(orig_col))
+      differ[is.na(differ)] <- FALSE
+      changed_rows <- which(differ)
+      if (length(changed_rows) > 0) {
+        keys <- c(keys, paste0(changed_rows - 1, "_", j - 1))
+      }
+    }
+  }
+  
+  # Mark all cells in new rows
+  if (n_rows_curr > n_rows_orig) {
+    for (i in (n_rows_orig + 1):n_rows_curr) {
+      keys <- c(keys, paste0(i - 1, "_", seq_len(n_cols_curr) - 1))
+    }
+  }
+  
+  # Mark all cells in new columns
+  if (n_cols_curr > n_cols_orig) {
+    for (j in (n_cols_orig + 1):n_cols_curr) {
+      keys <- c(keys, paste0(seq_len(n_rows_curr) - 1, "_", j - 1))
+    }
+  }
+  
+  if (length(keys) == 0) return("{}")
+  keys <- unique(keys)
+  pairs <- paste0('"', keys, '":true')
+  paste0("{", paste(pairs, collapse = ","), "}")
 }
