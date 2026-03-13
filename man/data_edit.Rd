@@ -13,6 +13,7 @@ data_edit(
   col_factor = FALSE,
   col_names = TRUE,
   col_readonly = NULL,
+  col_hide = NULL,
   row_bind = NULL,
   row_edit = TRUE,
   save_as = NULL,
@@ -68,6 +69,9 @@ allow editing of column names.}
 \item{col_readonly}{names of columns that cannot be edited. Users will be
 able to edit values but these will be reverted to the original values.
 Column names for these column cannot be edited either.}
+
+\item{col_hide}{names of columns to hide from the editor. Hidden columns
+will not be visible or editable but will be retained in the returned data.}
 
 \item{row_bind}{additional rows to add to the data prior to loading into
 editor, can be either an array containing the new data, a vector containing

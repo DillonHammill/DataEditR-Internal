@@ -60,6 +60,8 @@
 #' @param col_readonly names of columns that cannot be edited. Users will be
 #'   able to edit values but these will be reverted to the original values.
 #'   Column names for these column cannot be edited either.
+#' @param col_hide names of columns to hide from the editor. Hidden columns
+#'   will not be visible or editable but will be retained in the returned data.
 #' @param row_bind additional rows to add to the data prior to loading into
 #'   editor, can be either an array containing the new data, a vector containing
 #'   the new row names for empty rows or a named list containing a vector for
@@ -144,6 +146,7 @@ data_edit <- function(x = NULL,
                       col_factor = FALSE,
                       col_names = TRUE,
                       col_readonly = NULL,
+                      col_hide = NULL,
                       row_bind = NULL,
                       row_edit = TRUE,
                       save_as = NULL,
@@ -439,6 +442,7 @@ data_edit <- function(x = NULL,
       col_stretch = col_stretch,
       col_names = col_names,
       col_readonly = col_readonly,
+      col_hide = col_hide,
       col_factor = col_factor,
       row_bind = NULL, # endless loop!
       row_edit = row_edit,
