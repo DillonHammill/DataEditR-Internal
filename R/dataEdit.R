@@ -590,16 +590,18 @@ dataEditServer <- function(id,
   
   # Compare cells that exist in both original and current (matched by name)
   if (length(common_rows) > 0 && length(common_cols) > 0) {
+    curr_row_idx <- match(common_rows, curr_rnames)
+    orig_row_idx <- match(common_rows, orig_rnames)
     for (cname in common_cols) {
       curr_pos <- match(cname, curr_cnames)
       orig_pos <- match(cname, orig_cnames)
-      curr_vals <- as.character(current[match(common_rows, curr_rnames), curr_pos])
-      orig_vals <- as.character(original[match(common_rows, orig_rnames), orig_pos])
+      curr_vals <- as.character(current[curr_row_idx, curr_pos])
+      orig_vals <- as.character(original[orig_row_idx, orig_pos])
       differ <- (curr_vals != orig_vals) | (is.na(curr_vals) != is.na(orig_vals))
       differ[is.na(differ)] <- FALSE
       changed <- which(differ)
       if (length(changed) > 0) {
-        row_positions <- match(common_rows[changed], curr_rnames) - 1
+        row_positions <- curr_row_idx[changed] - 1
         col_position <- curr_pos - 1
         keys <- c(keys, paste0(row_positions, "_", col_position))
       }
