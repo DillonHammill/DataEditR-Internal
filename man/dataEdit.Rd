@@ -17,6 +17,7 @@ dataEditServer(
   col_stretch = FALSE,
   col_names = TRUE,
   col_readonly = NULL,
+  col_hide = NULL,
   col_factor = FALSE,
   row_bind = NULL,
   row_edit = TRUE,
@@ -60,6 +61,10 @@ allow editing of column names.}
 \item{col_readonly}{names of columns that cannot be edited. Users will be
 able to edit values but these will be reverted to the original values.
 Column names for these column cannot be edited either.}
+
+\item{col_hide}{names of columns to hide from the editor. Hidden columns
+will not be visible or editable but will be retained in the data returned
+by the module.}
 
 \item{col_factor}{logical indicating whether character columns should be
 converted to factors prior to returning the edited data, set to FALSE by
