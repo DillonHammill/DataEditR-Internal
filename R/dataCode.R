@@ -7,7 +7,10 @@
 #' the original data into the edited version. The generated code uses
 #' \code{rename()}, \code{select()}, \code{mutate()}, \code{slice()}, and
 #' \code{tibble::add_row()} to replicate column renames, column
-#' additions/removals, cell value changes, and row additions/removals.
+#' additions/removals, cell value changes, and row additions/removals. When
+#' meaningful row names are present (i.e. non-default row names such as those
+#' in \code{mtcars}), the generated code preserves them using
+#' \code{tibble::rownames_to_column()} and \code{tibble::column_to_rownames()}.
 #'
 #' @param x original data prior to editing, a \code{data.frame} or
 #'   \code{matrix}. If \code{NULL}, creation code will be generated for
@@ -62,6 +65,17 @@ data_code <- function(x, x_edit, name = "data") {
   orig_rows <- as.character(rownames(x))
   edit_rows <- as.character(rownames(x_edit))
 
+  # DETECT MEANINGFUL ROW NAMES
+  has_rownames <- data_code_has_rownames(x) || data_code_has_rownames(x_edit)
+
+  # CHOOSE ROW NAME COLUMN NAME (avoid conflicts)
+  if (has_rownames) {
+    rowname_col <- ".rownames"
+    while (rowname_col %in% orig_cols || rowname_col %in% edit_cols) {
+      rowname_col <- paste0(".", rowname_col)
+    }
+  }
+
   # DETECT COLUMN CHANGES
   col_changes <- data_code_columns(orig_cols, edit_cols)
 
@@ -75,6 +89,13 @@ data_code <- function(x, x_edit, name = "data") {
 
   # BUILD PIPE OPERATIONS
   pipes <- c()
+
+  # ROW NAMES TO COLUMN (tidyverse does not preserve row names)
+  if (has_rownames) {
+    pipes <- c(pipes, paste0(
+      'tibble::rownames_to_column(var = "', rowname_col, '")'
+    ))
+  }
 
   # COLUMN RENAMES
   if (length(col_changes$renames) > 0) {
@@ -206,17 +227,38 @@ data_code <- function(x, x_edit, name = "data") {
   if (length(added_rows) > 0) {
     for (row in added_rows) {
       row_data <- x_edit[row, , drop = FALSE]
-      vals <- vapply(edit_cols, function(col) {
+      vals <- c()
+      # Include row name column if row names are meaningful
+      if (has_rownames) {
+        vals <- c(vals, paste0(
+          data_code_quote(rowname_col), " = ", data_code_value(row)
+        ))
+      }
+      vals <- c(vals, vapply(edit_cols, function(col) {
         paste0(data_code_quote(col), " = ", data_code_value(row_data[1, col]))
-      }, character(1))
+      }, character(1)))
       pipes <- c(pipes, paste0(
         "tibble::add_row(", paste(vals, collapse = ", "), ")"
       ))
     }
   }
 
+  # COLUMN TO ROW NAMES (restore row names from column)
+  if (has_rownames) {
+    pipes <- c(pipes, paste0(
+      'tibble::column_to_rownames(var = "', rowname_col, '")'
+    ))
+  }
+
   # BUILD FINAL CODE
-  if (length(pipes) > 0) {
+  # Check if there are actual changes (not just rowname wrapping)
+  actual_pipes <- if (has_rownames) {
+    pipes[!grepl("^tibble::(rownames_to_column|column_to_rownames)", pipes)]
+  } else {
+    pipes
+  }
+
+  if (length(actual_pipes) > 0) {
     code <- paste0(
       "library(dplyr)\n\n",
       name, " <- ", name, " %>%\n  ",
@@ -322,6 +364,21 @@ data_code_create <- function(x_edit, name) {
 
   x_edit <- as.data.frame(x_edit, stringsAsFactors = FALSE)
   cols <- colnames(x_edit)
+  has_rownames <- data_code_has_rownames(x_edit)
+
+  # Include row names as a column if meaningful
+  if (has_rownames) {
+    rowname_col <- ".rownames"
+    while (rowname_col %in% cols) {
+      rowname_col <- paste0(".", rowname_col)
+    }
+    rn_vals <- as.character(rownames(x_edit))
+    rn_str <- paste(
+      vapply(rn_vals, data_code_value, character(1)),
+      collapse = ", "
+    )
+    rn_def <- paste0("  ", data_code_quote(rowname_col), " = c(", rn_str, ")")
+  }
 
   col_defs <- vapply(cols, function(col) {
     vals <- x_edit[, col]
@@ -332,12 +389,29 @@ data_code_create <- function(x_edit, name) {
     paste0("  ", data_code_quote(col), " = c(", val_str, ")")
   }, character(1))
 
-  paste0(
+  # Prepend row name column definition if needed
+  if (has_rownames) {
+    col_defs <- c(rn_def, col_defs)
+  }
+
+  create_code <- paste0(
     "library(dplyr)\n\n",
     name, " <- tibble::tibble(\n",
     paste(col_defs, collapse = ",\n"),
-    "\n)\n"
+    "\n)"
   )
+
+  # Convert row name column back to row names
+  if (has_rownames) {
+    create_code <- paste0(
+      create_code,
+      " %>%\n  tibble::column_to_rownames(var = \"", rowname_col, "\")\n"
+    )
+  } else {
+    create_code <- paste0(create_code, "\n")
+  }
+
+  create_code
 }
 
 ## QUOTE COLUMN NAME -----------------------------------------------------------
@@ -357,6 +431,26 @@ data_code_quote <- function(x) {
   )
   needs_backtick <- !grepl("^[a-zA-Z.][a-zA-Z0-9._]*$", x) | x %in% reserved
   ifelse(needs_backtick, paste0("`", x, "`"), x)
+}
+
+## CHECK ROW NAMES -------------------------------------------------------------
+
+#' Check if data has meaningful (non-default) row names
+#'
+#' Default row names are sequential integers "1", "2", ..., "n". Any other
+#' row names (e.g. character names like in \code{mtcars}) are considered
+#' meaningful and need to be preserved in tidyverse code.
+#'
+#' @param x a data.frame or matrix.
+#'
+#' @return logical indicating whether \code{x} has meaningful row names.
+#'
+#' @noRd
+data_code_has_rownames <- function(x) {
+  rn <- rownames(x)
+  if (is.null(rn) || length(rn) == 0) return(FALSE)
+  # Default row names are "1", "2", ..., "n"
+  !identical(rn, as.character(seq_len(nrow(x))))
 }
 
 ## FORMAT VALUE ----------------------------------------------------------------

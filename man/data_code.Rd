@@ -27,7 +27,10 @@ generates tidyverse-style R code (using \code{dplyr} verbs) that transforms
 the original data into the edited version. The generated code uses
 \code{rename()}, \code{select()}, \code{mutate()}, \code{slice()}, and
 \code{tibble::add_row()} to replicate column renames, column
-additions/removals, cell value changes, and row additions/removals.
+additions/removals, cell value changes, and row additions/removals. When
+meaningful row names are present (i.e. non-default row names such as those
+in \code{mtcars}), the generated code preserves them using
+\code{tibble::rownames_to_column()} and \code{tibble::column_to_rownames()}.
 }
 \examples{
 # original data
