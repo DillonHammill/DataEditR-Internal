@@ -211,6 +211,14 @@ dataEditServer <- function(id,
           values$col_names <- unique(c(col_names, col_readonly))
         }
         
+        # CONVERT FACTORS -------------------------------------------------------
+        
+        for (z in colnames(data_to_edit)) {
+          if (is.factor(data_to_edit[, z])) {
+            data_to_edit[, z] <- as.character(data_to_edit[, z])
+          }
+        }
+        
         # COLUMN OPTIONS ---------------------------------------------------------
         
         if (!is.null(col_options)) {
