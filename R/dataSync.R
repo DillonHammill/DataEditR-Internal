@@ -133,6 +133,13 @@ dataSyncServer <- function(id,
       } else {
         col_ind <- columns
       }
+      # VALIDATE INDICES
+      if(length(row_ind) != 0 && !is.null(data_old)) {
+        row_ind <- row_ind[row_ind <= nrow(data_old)]
+      }
+      if(length(col_ind) != 0 && !is.null(data_old)) {
+        col_ind <- col_ind[col_ind <= ncol(data_old)]
+      }
       # ENTIRE DATA
       if(length(row_ind) == 0 & length(col_ind) == 0) {
         data_old <- data_new

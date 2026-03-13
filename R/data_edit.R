@@ -436,6 +436,13 @@ data_edit <- function(x = NULL,
       row_ind <- isolate(values$rows)
       col_ind <- isolate(values$columns)
       if(!is.null(data_old) && !is.null(data_new)) {
+        # VALIDATE INDICES
+        if(length(row_ind) != 0) {
+          row_ind <- row_ind[row_ind <= nrow(data_old)]
+        }
+        if(length(col_ind) != 0) {
+          col_ind <- col_ind[col_ind <= ncol(data_old)]
+        }
         # ENTIRE DATA
         if(length(row_ind) == 0 & length(col_ind) == 0) {
           values$data <- data_new
