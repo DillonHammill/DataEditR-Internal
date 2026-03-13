@@ -407,7 +407,58 @@ data_edit(
 knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-20.png')
 ```
 
-## 9. RStudio Add-in
+## 9. Change Tracking
+
+`data_edit()` can visually highlight cells that have been edited or added compared to the original data. This makes it easy to keep track of changes during an editing session.
+
+### 9.1 Enable change tracking
+
+Set `track = TRUE` to enable change tracking with a default blue border around modified cells. Any cell whose value differs from the original, as well as all cells in newly added rows or columns, will be highlighted.
+
+```{r, eval = FALSE}
+data_edit(mtcars,
+          track = TRUE)
+```
+
+<!-- TODO: insert gif showing blue-bordered edited cells -->
+```{r, echo=FALSE, fig.align="center", out.width = '90%'}
+# knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-Track.gif')
+```
+
+### 9.2 Custom highlight colour
+
+You can pass any valid CSS color to `track` to customise the highlight border colour. For example, to use a red border:
+
+```{r, eval = FALSE}
+data_edit(mtcars,
+          track = "red")
+```
+
+<!-- TODO: insert gif showing red-bordered edited cells -->
+```{r, echo=FALSE, fig.align="center", out.width = '90%'}
+# knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-Track-Custom.gif')
+```
+
+Change tracking uses name-based cell matching, so inserting rows or columns will not cause all subsequent cells to appear as changed — only genuinely modified or newly added cells are highlighted.
+
+### 9.3 Change tracking in modules
+
+Change tracking is also available when using `dataEditServer()` directly within your own shiny applications:
+
+```{r, eval = FALSE}
+server <- function(input, output, session) {
+  data_to_edit <- dataInputServer("input-1")
+  data_edit <- dataEditServer("edit-1",
+    data = data_to_edit,
+    track = TRUE
+  )
+  dataOutputServer("output-1",
+    data = data_edit
+  )
+}
+```
+
+## 10. RStudio Add-in
 
 `DataEditR` also ships with an RStudio add-in should you prefer to interact with your data in this way. Simply highlight the name of a dataset in an active script and select the `Interactive Data Editor` from the list of `Addins` in your RStudio session.
 
@@ -415,7 +466,7 @@ knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEdi
 knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-21.gif')
 ```
 
-## 10. Interactively Edit Googlesheets
+## 11. Interactively Edit Googlesheets
 
 `DataEditR` can also be used to interactively edit googlesheets using `googlesheets4`. Simply authorise `googlesheets`, create a new sheet, edit the data using `data_edit()` and write the edited data to the created sheet.
 
@@ -441,14 +492,38 @@ mtcars_new <- data_edit(
 )
 ```
 
-## 11. Exporting Code
+## 12. Exporting Code
 
-For reproducibility, it is possible to export the code required to generate the final edited version of your data. Simply set `code = TRUE` within `data_edit()` to print this code to console. Copying and pasting this code into the console will recreate the edited version of your data.
+For reproducibility, it is possible to export the code required to generate the final edited version of your data. The generated code uses tidyverse-style `dplyr` verbs to transform the original data into the edited version.
+
+### 12.1 Print code to console
+
+Set `code = TRUE` within `data_edit()` to print the generated code to the console. The code uses `dplyr` verbs such as `rename()`, `select()`, `mutate()`, `slice()`, and `tibble::add_row()` to replicate your edits. Copying and pasting this code into the console will recreate the edited version of your data.
 
 ```{r, eval = FALSE}
 data_edit(mtcars,
           code = TRUE)
 ```
+
+For example, renaming a column, modifying a cell value and removing a row might produce code like:
+
+```{r, eval = FALSE}
+library(dplyr)
+
+mtcars <- mtcars %>%
+  tibble::rownames_to_column(var = ".rownames") %>%
+  rename(miles_per_gallon = mpg) %>%
+  slice(-3) %>%
+  mutate(hp = replace(hp, 1, 120)) %>%
+  tibble::column_to_rownames(var = ".rownames")
+```
+
+<!-- TODO: insert gif showing code printed to console after editing -->
+```{r, echo=FALSE, fig.align="center", out.width = '90%'}
+# knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-Code.gif')
+```
+
+### 12.2 Save code to file
 
 Alternatively, users can get `DataEditR` to automatically create a new R script to store this code by providing a name for the R script to `code`. For example, the below code creates a new R script called `mtcars_edit.R` and inserts the code required to programmatically generate the final edited version of your data.
 
@@ -456,6 +531,36 @@ Alternatively, users can get `DataEditR` to automatically create a new R script 
 data_edit(mtcars,
           code = "mtcars_edit.R")
 ```
+
+### 12.3 Using `data_code()` directly
+
+The `data_code()` function can also be used outside of `data_edit()` to generate code from any pair of original and edited data frames:
+
+```{r, eval = FALSE}
+# Original data
+x <- data.frame(
+  A = c(1, 2, 3),
+  B = c("x", "y", "z"),
+  stringsAsFactors = FALSE
+)
+
+# Edited data (changed a value and renamed a column)
+x_edit <- data.frame(
+  A = c(1, 5, 3),
+  Beta = c("x", "y", "z"),
+  stringsAsFactors = FALSE
+)
+
+# Generate code
+cat(data_code(x, x_edit, name = "x"))
+#> library(dplyr)
+#>
+#> x <- x %>%
+#>   rename(Beta = B) %>%
+#>   mutate(A = replace(A, 2, 5))
+```
+
+When the original data has meaningful row names (e.g. `mtcars`), the generated code automatically preserves them using `tibble::rownames_to_column()` and `tibble::column_to_rownames()`.
 
 ## Summary
 

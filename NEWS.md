@@ -1,3 +1,47 @@
+# DataEditR 1.0.0
+
+## Major New Features
+
+* Add change tracking with the new `track` parameter in `data_edit()` and
+  `dataEditServer()`. Set `track = TRUE` to highlight edited and added cells
+  with a blue border, or pass a CSS color string (e.g. `track = "red"`) for a
+  custom highlight colour. Uses Handsontable's `afterRenderer` hook and
+  name-based cell matching so that inserted rows or columns no longer cause all
+  subsequent cells to appear changed. (PR #3, #7)
+* Add tidyverse-style code generation via the new `data_code()` function and
+  updated `code` argument in `data_edit()`. Instead of `dput()` output, the
+  editor now generates human-readable `dplyr` pipe code using `rename()`,
+  `select()`, `mutate()`, `slice()`, and `tibble::add_row()` to replicate
+  column renames, additions/removals, cell value changes, and row
+  additions/removals. Row names (e.g. those in `mtcars`) are preserved via
+  `tibble::rownames_to_column()` / `tibble::column_to_rownames()`. (PR #2)
+
+## Automatic Data Synchronisation
+
+* Remove the sync button in favour of automatic data synchronisation. Changes
+  made to filtered or selected data subsets are now automatically merged back
+  into the master copy of the data as they are made. (PR #1)
+* Fix bug where column indices were not passed to the sync logic
+  (`values$cols` instead of `values$columns`). (PR #1)
+* Add `auto` parameter to `dataSyncServer()` to allow automatic synchronisation
+  when used as a standalone module. (PR #1)
+* Improve performance by preventing unnecessary table re-renders after data
+  synchronisation. Filter and select modules no longer reset on every sync.
+  (PR #1)
+
+## Bug Fixes
+
+* Fix factor column crash: passing a data frame with factor columns no longer
+  causes an error in `hot_context_menu`. Factor columns are now converted to
+  character before rendering and converted back on output via `col_factor`.
+  (PR #6)
+
+## Internal
+
+* Add `.github/copilot-instructions.md` with repository-specific guidance
+  covering architecture, coding conventions, build/CI commands and design
+  constraints. (PR #5)
+
 # DataEditR 0.1.7
 
 * Remove the sync button in favour of automatic data synchronisation. Changes 

@@ -70,8 +70,8 @@ add-in should you prefer to interact with it in this way.
     (e.g. `write.csv()`)
 -   return appropriately formatted data as an R object for downstream
     use
--   code required to create edited data can be optionally printed to the
-    console or saved to a file
+-   tidyverse-style code generation to reproduce edits using `dplyr`
+    verbs (via `data_code()`)
 -   support for custom themes through `bslib` package
 -   customisable user interface (title, logo and modules)
 -   row indices are always displayed for easy navigation
@@ -82,6 +82,10 @@ add-in should you prefer to interact with it in this way.
 
 -   column selection using the `dataSelect` module
 -   row selection using the `dataFilter` module
+-   automatic synchronisation of edits to filtered or selected data
+    subsets with the master dataset
+-   change tracking to visually highlight edited and added cells
+    (`track` parameter)
 -   edit row or column names
 -   addition or removal of rows or columns
 -   manual column resizing
@@ -91,6 +95,7 @@ add-in should you prefer to interact with it in this way.
     dropdown menus)
 -   support for readonly columns to prevent users from editing certain
     columns
+-   support for factor columns (automatically converted for editing)
 -   control over which column names can be edited
 -   stretch columns horizontally to fill available space
 -   programmatically add columns or rows to data prior to loading into
