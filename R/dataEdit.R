@@ -280,7 +280,9 @@ dataEditServer <- function(id,
     # UPDATE VALUES
     observe({
       values$x <- data_to_edit()
-      values$x_original <- data_to_edit()
+      if (is.null(values$x_original)) {
+        values$x_original <- data_to_edit()
+      }
     })
     
     # DATA EDITS - INCLUDES ROW NAME EDITS
