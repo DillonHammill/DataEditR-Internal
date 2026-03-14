@@ -19,7 +19,7 @@ code, set to \code{"data"} by default.}
 }
 \value{
 a character string containing tidyverse code that can be printed to
-  the console or written to an R script.
+the console or written to an R script.
 }
 \description{
 \code{data_code} compares an original dataset with an edited version and
