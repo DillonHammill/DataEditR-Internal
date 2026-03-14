@@ -446,6 +446,10 @@ data_edit(mtcars,
 
 Change tracking uses name-based cell matching, so inserting rows or columns will not cause all subsequent cells to appear as changed — only genuinely modified or newly added cells are highlighted.
 
+```{r, echo=FALSE, fig.align="center", out.width = '90%'}
+knitr::include_graphics('https://raw.githubusercontent.com/DillonHammill/DataEditR/master/vignettes/DataEditR/DataEditR-22.png')
+```
+
 ### 9.3 Change tracking in modules
 
 Change tracking is also available when using `dataEditServer()` directly within your own shiny applications:
